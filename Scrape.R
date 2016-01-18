@@ -1,8 +1,8 @@
 # Scrape
-# Last edited 1/17/2016
+# Last edited 1/17/2016 / Mise-a-jour 1-17-2016
 # Manny
 
-## SCRAPE GAMES
+## SCRAPE GAMES / ACQUÉRIR MATCHS
 
 # Load libraries
 library(rvest)
@@ -10,18 +10,18 @@ library(dplyr)
 library(RCurl)
 library(RSQLite)
 
-# Load functions
+# Load functions / Charger les fonctions
 load("~/Documents/github/dryscrape/scrape.RData")
 
-# Get game IDs
+# Get game IDs / Chercher codes des matchs
 todays.games("20152016", "1/14/2016")
 
 ########################################################################################################################################################################################################
 
 start <- Sys.time()
 
-# Compile games
-scrape(season = "20122013", start = 20301, end = 20500, names = TRUE)
+# Compile games / Compiler matchs
+scrape(season = "20112012", start = 20201, end = 20500, names = TRUE)
 
 # FIX POINTS (BENCH ASSISTS) √
 # FIX STRENGTH.STATE DEFINITION (EMPTY NET) √
@@ -31,13 +31,13 @@ scrape(season = "20122013", start = 20301, end = 20500, names = TRUE)
 ########################################################################################################################################################################################################
 ########################################################################################################################################################################################################
 
-## CREATE TABLES
+## CREATE TABLES / CRÉER TABLES
 
-# Load regressions and coefficients
+# Load regressions and coefficients / Charger régressions et coefficients 
 load("~/Documents/xG_Regressions.RData")
 load("~/Documents/coeffs.RData")
 
-# Enhanced PBP
+# Enhanced PBP / Résumé de match amélioré
 pbp.full$Home.Zone <- pbp.full$ev.zone
 pbp.full$Home.Zone[which(as.character(pbp.full$ev.team) == as.character(pbp.full$Away.Team) & as.character(pbp.full$ev.zone) == "Off")] <- "Def"
 pbp.full$Home.Zone[which(as.character(pbp.full$ev.team) == as.character(pbp.full$Away.Team) & as.character(pbp.full$ev.zone) == "Def")] <- "Off"
@@ -54,14 +54,14 @@ pbp.full <- mutate(pbp.full, Newcode = paste(Season, Game.ID, sep = "."), Round.
          Category2 = as.numeric((1*(as.character(ev.team) == as.character(Away.Team)) + 20*(as.character(ev.team) == as.character(Home.Team)))*(Score.Cat + 4))) %>%
   data.frame()
 
-# Fix empty-net states
+# Fix empty-net states / Réparer états de filet désert 
 pbp.full$Strength.State[which(is.na(pbp.full$Home.Goalie) == TRUE | is.na(pbp.full$Away.Goalie) == TRUE)] <- "EvE"
 pbp.full$Strength.State[which(as.numeric(as.character(pbp.full$Period)) > 4 & as.numeric(as.character(pbp.full$Game.ID)) < 30000)] <- "0v0"
 
-# Prevent NA event team
+# Prevent NA event team / Prévenir équipe du jeu NA
 pbp.full$ev.team[which(is.na(as.character(pbp.full$ev.team)) == TRUE)] <- "UKN"
 
-# DUMMY CATEGORY FOR NON-5V5 OR NA MATCHING TO 1
+# DUMMY CATEGORY FOR NON-5V5 OR NA MATCHING TO 1 / CATÉGORIE FAUSSE POUR NA OU ÉTATS NON-5V5 POUR ASSOCIER A 1
 pbp.full$Category1[which(as.character(pbp.full$Strength.State) != "5v5" | pbp.full$Category1 == 0)] <- NA
 pbp.full$Category2[which(as.character(pbp.full$Strength.State) != "5v5" | pbp.full$Category2 == 0)] <- NA
 
@@ -101,13 +101,13 @@ pbp.full <- rbind_list(filter(pbp.full, as.character(Event) %in% c("GOAL", "SHOT
                        filter(pbp.full, as.character(Event) %in% c("GOAL", "SHOT", "MISS") == F)) %>% data.frame() %>% 
     group_by(Game.ID) %>% arrange(Seconds) %>% data.frame()
 
-# Replace xG for shots missing coordinates
+# Replace xG for shots missing coordinates / Remplacer xG pour tirs sans coordinées
 pbp.full$xG[which(is.na(pbp.full$xG) == TRUE & as.character(pbp.full$Event) %in% c("GOAL", "SHOT", "MISS"))] <- 0.06639
 
-# Append unique game codes to roster table 
+# Append unique game codes to roster table / Attacher codes de match uniques a la table de formation
 roster.full$Newcode <- paste(roster.full$Season, roster.full$Game.ID, sep = ".")
 
-# Functions
+# Functions / Fonctions
 code <- function(a, b, c) {
   sorted <- sort(c(first(a), first(b), first(c)), decreasing = FALSE)
   p1 <- sorted[1]
@@ -352,7 +352,7 @@ sum3p.away <- function(x) {
             P3.A2 = sum(as.character(Event) %in% c("GOAL") & as.character(p3) == as.character(P3))) %>% data.frame()
 }
 
-# Create team table
+# Create team table / Créer table d'équipes
 team.bygame <- rbind_list(group_by(pbp.full, Season, Date, Game.ID, Home.Team, Score.Cat, Strength.State, Season.Type) %>% rename(Team = Home.Team) %>%
                             summarise(Venue = "Home", TOI = round(sum(as.numeric(as.character(Event.Length)))/60, 2),
                                       CF = sum(as.character(ev.team) == Team & as.character(Event) %in% c("SHOT", "GOAL", "MISS", "BLOCK")), CA = sum(as.character(ev.team) == Away.Team & as.character(Event) %in% c("SHOT", "GOAL", "MISS", "BLOCK")),
@@ -416,7 +416,7 @@ team.bygame <- rbind_list(group_by(pbp.full, Season, Date, Game.ID, Home.Team, S
   mutate(Newcode = paste(Season, Game.ID, sep = ".")) %>% data.frame()
 # ADD OFFSIDES/ICINGS?
 
-# Create goalie table
+# Create goalie table / Créer table de gardiens
 goalie.bygame <- rbind_list(group_by(pbp.full, Season, Date, Game.ID, Home.Goalie, Score.Cat, Strength.State, Season.Type) %>% rename(Player = Home.Goalie) %>%
                             summarise(Venue = "Home", Team = first(Home.Team), TOI = round(sum(as.numeric(as.character(Event.Length)))/60, 2),
                                       CF = sum(as.character(ev.team) == Home.Team & as.character(Event) %in% c("SHOT", "GOAL", "MISS", "BLOCK")), CA = sum(as.character(ev.team) == Away.Team & as.character(Event) %in% c("SHOT", "GOAL", "MISS", "BLOCK")),
@@ -491,7 +491,7 @@ goalie.bygame <- rbind_list(group_by(pbp.full, Season, Date, Game.ID, Home.Goali
                                       DISTA = sum(na.omit(Distance*(as.character(Event) %in% c("SHOT", "GOAL", "MISS") & as.character(ev.team) == Away.Team))))) %>%
   mutate(Newcode = paste(Season, Game.ID, sep = ".")) %>% data.frame() %>% filter(!is.na(Player)) %>% data.frame()
 
-# Create player table
+# Create player table / Créer table de joueurs
 player.points <- rbind_list(group_by(pbp.full, Season, Date, Game.ID, p1, Score.Cat, Strength.State, Season.Type) %>% rename(Player = p1) %>%
                               summarise(G = sum(Event %in% c("GOAL")), A1 = 0, A2 = 0),
                             group_by(pbp.full, Season, Date, Game.ID, p2, Score.Cat, Strength.State, Season.Type) %>% rename(Player = p2) %>%
@@ -561,8 +561,8 @@ player.bygame <- rbind_list(group_by(pbp.full, Season, Date, Game.ID, h1.num, Sc
 # TO ADD: REBOUNDS, RUSHES, ON-ICE OFFSIDE/ICING?
 # EXCLUDE ICINGS FROM ZONE STARTS/FINISHES?
 
-## Create combo table
-# Two-player combos
+## Create combo table / Créer table de combinaisons
+# Two-player combos / Combinaisons de deux joueurs
 grouped2 <- rbind_list(
   group_by(pbp.full, Season, Date, Game.ID, Score.Cat, Strength.State, Season.Type, a1.num, a2.num) %>% rename(P1 = a1.num, P2 = a2.num) %>% 
     sum2p.away(),
@@ -626,7 +626,7 @@ grouped2 <- rbind_list(
     sum2p.home()
 ) %>% group_by(Season, Date, Game.ID, Score.Cat, Strength.State, Season.Type, P1, P2, P3) %>% mutate(Combo.Code = code(P1, P2, P3), Newcode = paste(Season, Game.ID, sep = ".")) %>% filter(!is.na(P1) & !is.na(P2)) %>% data.frame()
 
-# Three-player combos
+# Three-player combos / Combinaisons de trois joueurs
 grouped3 <- rbind_list(
   group_by(pbp.full, Season, Date, Game.ID, Score.Cat, Strength.State, Season.Type, a1.num, a2.num, a3.num) %>% rename(P1 = a1.num, P2 = a2.num, P3 = a3.num) %>% 
     sum3p.away(),
@@ -710,7 +710,7 @@ grouped3 <- rbind_list(
     sum3p.home()
 ) %>% group_by(Season, Date, Game.ID, Score.Cat, Strength.State, Season.Type, P1, P2, P3) %>% mutate(Combo.Code = code(P1, P2, P3), Newcode = paste(Season, Game.ID, sep = ".")) %>% filter(!is.na(P1) & !is.na(P2) & !is.na(P3)) %>% data.frame()
 
-# Combine
+# Combine / Combiner
 grouped <- rbind_list(grouped2, grouped3)
 
 combos.bygame <- merge(group_by(grouped, Season, Date, Game.ID, Newcode, Combo.Code, Venue, Score.Cat, Strength.State, Season.Type) %>%
@@ -748,7 +748,7 @@ combos.bygame <- merge(group_by(grouped, Season, Date, Game.ID, Newcode, Combo.C
 # ORDER PLAYERS
 # ADD ASSIST NETWORK
 
-# Trim PBP
+# Trim PBP / Réduire résumé
 pbp.full <- select(pbp.full, -c(FOS, ZF, is.NZ, is.PP, ref, Since, Zone.Start, Since.Cat, Category1, Category2)) %>% data.frame()
 
 end <- Sys.time()
@@ -757,16 +757,16 @@ print(end - start)
 ########################################################################################################################################################################################################
 ########################################################################################################################################################################################################
 
-## WRITE TO DATABASE
+## WRITE TO DATABASE / AJOUTER A LA BASE DE DONNÉES
 
-# Link to database
+# Link to database / Connecter a la base de données
 link <- "~/Documents/dryscrape data/dryscrape.sqlite"
 newcon <- dbConnect(SQLite(), link)
 
-# List games already in database
+# List games already in database / Chercher matchs déja présents dans la base de données
 db.games <- unique(sqliteQuickColumn(newcon, "roster", "Newcode"))
 
-# Remove overlapping games
+# Remove overlapping games / Éliminer matchs extras
 pbp <- filter(pbp.full, Newcode %in% db.games == FALSE)
 roster <- filter(roster.full, Newcode %in% db.games == FALSE)
 team <- filter(team.bygame, Newcode %in% db.games == FALSE)
@@ -774,7 +774,7 @@ goalie <- filter(goalie.bygame, Newcode %in% db.games == FALSE)
 player <- filter(player.bygame, Newcode %in% db.games == FALSE)
 combo <- filter(combos.bygame, Newcode %in% db.games == FALSE)
 
-# Write tables
+# Write tables / Ajouter les tables
 dbWriteTable(newcon, "pbp", pbp, overwrite = FALSE, append = TRUE)
 dbWriteTable(newcon, "roster", roster, overwrite = FALSE, append = TRUE)
 dbWriteTable(newcon, "team", team, overwrite = FALSE, append = TRUE)
